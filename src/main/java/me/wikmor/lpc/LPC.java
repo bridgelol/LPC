@@ -134,11 +134,11 @@ public final class LPC extends JavaPlugin implements Listener {
 		ItemStack itemInMainHand = player.getEquipment().getItemInMainHand();
 
 		if (!itemInMainHand.hasItemMeta() || !itemInMainHand.getItemMeta().hasDisplayName()) {
-			return Component.text("[" + WordUtils.capitalizeFully(itemInMainHand.getType().name().toLowerCase().replace("_", " ")) + " x" + itemInMainHand.getAmount() + "]")
+			return Component.text("[" + WordUtils.capitalizeFully(itemInMainHand.getType().name().toLowerCase().replace("_", " ")) + (itemInMainHand.getAmount() > 1 ? " x" + itemInMainHand.getAmount() : "") + "]")
 					.hoverEvent(itemInMainHand.asHoverEvent());
 		}
 
-		return Component.text("[").append(itemInMainHand.getItemMeta().displayName()).append(Component.text(" x" + itemInMainHand.getAmount() + "]"))
+		return Component.text("[").append(itemInMainHand.getItemMeta().displayName()).append(Component.text(" x" + (itemInMainHand.getAmount() > 1 ? " x" + itemInMainHand.getAmount() : "") + "]"))
 				.hoverEvent(itemInMainHand.asHoverEvent());
 	}
 }
