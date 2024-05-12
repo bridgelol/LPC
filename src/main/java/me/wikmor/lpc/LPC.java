@@ -1,8 +1,15 @@
 package me.wikmor.lpc;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
 import me.clip.placeholderapi.PlaceholderAPI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentLike;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.cacheddata.CachedMetaData;
+import org.apache.commons.lang3.text.WordUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -11,11 +18,13 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -56,8 +65,14 @@ public final class LPC extends JavaPlugin implements Listener {
 	}
 
 	@EventHandler(priority = EventPriority.HIGHEST)
-	public void onChat(final AsyncPlayerChatEvent event) {
-		final String message = event.getMessage();
+	public void onChat(final AsyncChatEvent event) {
+		final Component component = event.message();
+
+		if (!(component instanceof TextComponent textComponent)) {
+			return;
+		}
+
+		final String message = textComponent.content();
 		final Player player = event.getPlayer();
 
 		// Get a LuckPerms cached metadata for the player.
@@ -77,9 +92,20 @@ public final class LPC extends JavaPlugin implements Listener {
 
 		format = colorize(translateHexColorCodes(getServer().getPluginManager().isPluginEnabled("PlaceholderAPI") ? PlaceholderAPI.setPlaceholders(player, format) : format));
 
-		event.setFormat(format.replace("{message}", player.hasPermission("lpc.colorcodes") && player.hasPermission("lpc.rgbcodes")
+		String legacy = format.replace("{message}", player.hasPermission("lpc.colorcodes") && player.hasPermission("lpc.rgbcodes")
 				? colorize(translateHexColorCodes(message)) : player.hasPermission("lpc.colorcodes") ? colorize(message) : player.hasPermission("lpc.rgbcodes")
-				? translateHexColorCodes(message) : message).replace("%", "%%"));
+				? translateHexColorCodes(message) : message).replace("%", "%%");
+
+		event.message(LegacyComponentSerializer.legacyAmpersand()
+				.deserialize(legacy)
+				.replaceText(
+						TextReplacementConfig.builder()
+								.match(Pattern.compile("\\[item]|\\[i]"))
+								.replacement(builder -> formatItemInHand(player))
+								.once()
+								.build()
+				)
+		);
 	}
 
 	private String colorize(final String message) {
@@ -102,5 +128,17 @@ public final class LPC extends JavaPlugin implements Listener {
 		}
 
 		return matcher.appendTail(buffer).toString();
+	}
+
+	private Component formatItemInHand(Player player) {
+		ItemStack itemInMainHand = player.getEquipment().getItemInMainHand();
+
+		if (!itemInMainHand.hasItemMeta() || !itemInMainHand.getItemMeta().hasDisplayName()) {
+			return Component.text("[" + WordUtils.capitalizeFully(itemInMainHand.getType().name().toLowerCase().replace("_", " ")) + " x" + itemInMainHand.getAmount() + "]")
+					.hoverEvent(itemInMainHand.asHoverEvent());
+		}
+
+		return Component.text("[").append(itemInMainHand.getItemMeta().displayName()).append(Component.text(" x" + itemInMainHand.getAmount() + "]"))
+				.hoverEvent(itemInMainHand.asHoverEvent());
 	}
 }
