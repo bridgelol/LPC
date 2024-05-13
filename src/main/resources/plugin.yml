@@ -11,3 +11,6 @@ commands:
     description: Reload the configuration.
     permission: lpc.reload
     usage: "Usage: /lpc reload"
+  inv:
+    description: View an inventory snapshot
+    usage: "Usage: /inv <id>"
