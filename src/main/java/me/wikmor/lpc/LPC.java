@@ -135,7 +135,7 @@ public final class LPC extends JavaPlugin implements Listener {
 						.replacement(() -> finalComponent)
 						.once()
 						.build()
-		).append(component);
+		);
 
 		for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
 			onlinePlayer.sendMessage(player, toSend);
