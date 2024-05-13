@@ -12,6 +12,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.cacheddata.CachedMetaData;
 import org.apache.commons.lang3.text.WordUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -66,7 +67,7 @@ public final class LPC extends JavaPlugin implements Listener {
 		return new ArrayList<>();
 	}
 
-	@EventHandler(priority = EventPriority.HIGH)
+	/*@EventHandler(priority = EventPriority.HIGH)
 	public void onChat(final AsyncPlayerChatEvent event) {
 		final String message = event.getMessage();
 		final Player player = event.getPlayer();
@@ -92,25 +93,53 @@ public final class LPC extends JavaPlugin implements Listener {
 		event.setMessage(player.hasPermission("lpc.colorcodes") && player.hasPermission("lpc.rgbcodes")
 				? colorize(translateHexColorCodes(message)) : player.hasPermission("lpc.colorcodes") ? colorize(message) : player.hasPermission("lpc.rgbcodes")
 				? translateHexColorCodes(message) : message.replace("%", "%%"));
-	}
+	}*/
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	public void onChat(final AsyncChatEvent event) {
-		final Component component = event.message();
+		Component component = event.message();
+		event.setCancelled(true);
 
-		if (!event.getPlayer().hasPermission("lpc.chat.item")) {
-			return;
+		if (event.getPlayer().hasPermission("lpc.chat.item")) {
+			component = component.replaceText(
+					TextReplacementConfig.builder()
+							.match(Pattern.compile("\\[item]|\\[i]"))
+							.replacement(builder -> formatItemInHand(event.getPlayer()))
+							.once()
+							.build()
+			);
 		}
 
-		event.message(component
-				.replaceText(
-						TextReplacementConfig.builder()
-								.match(Pattern.compile("\\[item]|\\[i]"))
-								.replacement(builder -> formatItemInHand(event.getPlayer()))
-								.once()
-								.build()
-				)
-		);
+		final Player player = event.getPlayer();
+		final CachedMetaData metaData = this.luckPerms.getPlayerAdapter(Player.class).getMetaData(player);
+		final String group = metaData.getPrimaryGroup();
+
+		String format = getConfig().getString(getConfig().getString("group-formats." + group) != null ? "group-formats." + group : "chat-format")
+				.replace("{prefix}", metaData.getPrefix() != null ? metaData.getPrefix() : "")
+				.replace("{suffix}", metaData.getSuffix() != null ? metaData.getSuffix() : "")
+				.replace("{prefixes}", metaData.getPrefixes().keySet().stream().map(key -> metaData.getPrefixes().get(key)).collect(Collectors.joining()))
+				.replace("{suffixes}", metaData.getSuffixes().keySet().stream().map(key -> metaData.getSuffixes().get(key)).collect(Collectors.joining()))
+				.replace("{world}", player.getWorld().getName())
+				.replace("{name}", player.getName())
+				.replace("{displayname}", player.getDisplayName())
+				.replace("{username-color}", metaData.getMetaValue("username-color") != null ? metaData.getMetaValue("username-color") : "")
+				.replace("{message-color}", metaData.getMetaValue("message-color") != null ? metaData.getMetaValue("message-color") : "");
+
+		format = colorize(translateHexColorCodes(getServer().getPluginManager().isPluginEnabled("PlaceholderAPI") ? PlaceholderAPI.setPlaceholders(player, format) : format));
+
+		final Component formatComponent = LegacyComponentSerializer.legacySection().deserialize(format);
+		Component finalComponent = component;
+		final Component toSend = formatComponent.replaceText(
+				TextReplacementConfig.builder()
+						.match(Pattern.compile("\\{message}|\\{msg}"))
+						.replacement(() -> finalComponent)
+						.once()
+						.build()
+		).append(component);
+
+		for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+			onlinePlayer.sendMessage(player, toSend);
+		}
 	}
 
 	private String colorize(final String message) {
