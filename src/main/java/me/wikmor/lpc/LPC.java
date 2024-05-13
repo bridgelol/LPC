@@ -209,7 +209,7 @@ public final class LPC extends JavaPlugin implements Listener {
 
         cachedInventories.put(player.getName().toLowerCase(), new CachedInventory(holder, contents.clone()));
 
-        return Component.text("[" + player.getName() + "'s Inventory (/inv " + player.getName() + ")]").hoverEvent(Component.text("Click to view " + player.getName() + "'s inventory.").color(NamedTextColor.GRAY)).clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/inv " + player.getName()));
+        return Component.text("[" + player.getName() + "'s Inventory]").hoverEvent(Component.text("Click to view " + player.getName() + "'s inventory.").color(NamedTextColor.GRAY)).clickEvent(ClickEvent.clickEvent(ClickEvent.Action.RUN_COMMAND, "/inv " + player.getName()));
     }
 
     private final class CachedInventory {
