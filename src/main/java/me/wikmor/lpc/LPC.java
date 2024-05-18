@@ -90,6 +90,10 @@ public final class LPC extends JavaPlugin implements Listener {
             return true;
         }
 
+        if (!sender.hasPermission("lpc.admin")) {
+            return false;
+        }
+
         if (args.length == 1 && "reload".equals(args[0])) {
             reloadConfig();
 
