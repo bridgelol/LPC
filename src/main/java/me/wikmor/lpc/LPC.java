@@ -21,16 +21,15 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,6 +42,7 @@ public final class LPC extends JavaPlugin implements Listener {
     private LuckPerms luckPerms;
 
     private boolean chatMuted = false;
+    private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
 
     @Override
     public void onEnable() {
@@ -155,6 +155,11 @@ public final class LPC extends JavaPlugin implements Listener {
         }
     }
 
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        cooldowns.remove(event.getPlayer().getUniqueId());
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onChat(final AsyncChatEvent event) {
         Component component = event.message();
@@ -164,6 +169,15 @@ public final class LPC extends JavaPlugin implements Listener {
             event.getPlayer().sendMessage(colorize("&cChat is currently muted."));
             return;
         }
+
+        if (cooldowns.containsKey(event.getPlayer().getUniqueId()) && !event.getPlayer().hasPermission("lpc.chat.cooldown.bypass")) {
+            if (System.currentTimeMillis() < cooldowns.get(event.getPlayer().getUniqueId())) {
+                event.getPlayer().sendMessage(colorize("&cYou are currently on a chat cooldown."));
+                return;
+            }
+        }
+
+        cooldowns.put(event.getPlayer().getUniqueId(), System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(1));
 
         if (event.getPlayer().hasPermission("lpc.chat.item")) {
             component = component.replaceText(TextReplacementConfig.builder().match(Pattern.compile("\\[item]|\\[i]")).replacement(builder -> formatItemInHand(event.getPlayer())).once().build());
