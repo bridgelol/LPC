@@ -160,7 +160,7 @@ public final class LPC extends JavaPlugin implements Listener {
         Component component = event.message();
         event.setCancelled(true);
 
-        if (chatMuted) {
+        if (chatMuted && !event.getPlayer().hasPermission("lpc.chat.mute.bypass")) {
             event.getPlayer().sendMessage(colorize("&cChat is currently muted."));
             return;
         }
