@@ -42,6 +42,8 @@ public final class LPC extends JavaPlugin implements Listener {
     private final Cache<String, CachedInventory> cachedInventories = CacheBuilder.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS).build();
     private LuckPerms luckPerms;
 
+    private boolean chatMuted = false;
+
     @Override
     public void onEnable() {
         // Load an instance of 'LuckPerms' using the services manager.
@@ -92,6 +94,11 @@ public final class LPC extends JavaPlugin implements Listener {
             reloadConfig();
 
             sender.sendMessage(colorize("&aLPC has been reloaded."));
+            return true;
+        } else if (args.length == 1 && "mute".equals(args[0])) {
+            chatMuted = !chatMuted;
+
+            sender.sendMessage(colorize("&aChat has been " + (chatMuted ? "muted." : "unmuted.")));
             return true;
         }
 
@@ -148,6 +155,11 @@ public final class LPC extends JavaPlugin implements Listener {
     public void onChat(final AsyncChatEvent event) {
         Component component = event.message();
         event.setCancelled(true);
+
+        if (chatMuted) {
+            event.getPlayer().sendMessage(colorize("&cChat is currently muted."));
+            return;
+        }
 
         if (event.getPlayer().hasPermission("lpc.chat.item")) {
             component = component.replaceText(TextReplacementConfig.builder().match(Pattern.compile("\\[item]|\\[i]")).replacement(builder -> formatItemInHand(event.getPlayer())).once().build());
