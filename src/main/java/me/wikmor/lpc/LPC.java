@@ -104,6 +104,13 @@ public final class LPC extends JavaPlugin implements Listener {
 
             sender.sendMessage(colorize("&aChat has been " + (chatMuted ? "muted." : "unmuted.")));
             return true;
+        } else if (args.length == 1 && "clear".equals(args[0])) {
+            for (int i = 0; i < 100; i++) {
+                Bukkit.broadcast(Component.text(" "));
+            }
+
+            Bukkit.broadcast(Component.text("Chat has been cleared.").color(NamedTextColor.GREEN));
+            return true;
         }
 
         return false;
